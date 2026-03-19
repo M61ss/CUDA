@@ -2,6 +2,8 @@
 
 Inside folders there is a README and there are some notes written in code comments. Detailed information are available on the NVIDIA official documentation site "[NVIDIA CUDA C Programming Guide](https://docs.nvidia.com/cuda/cuda-c-programming-guide/#programming-model)".
 
+In this repository there is also `basic-sample`, an auto-generated Visual Studio CUDA project that I think could be useful as a good starting point for refresh your memory or keep a reference about fundamental functions and conventions usually used with CUDA.
+
 # Run programs
 
 ## Windows + VSCode
