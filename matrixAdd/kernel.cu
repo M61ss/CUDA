@@ -4,36 +4,45 @@
 
 #include <stdio.h>
 
-cudaError_t matrixAdd(int **c, const int **a, const int **b, unsigned int xDim, unsigned int yDim);
+#define M 5
+#define N 4
 
-__global__ void addKernel(int **c, const int **a, const int **b)
+cudaError_t matrixAdd(int ca[][M], const int a[][M], const int b[][M]);
+
+__global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
 {
     int i = threadIdx.x;
-    c[i] = a[i] + b[i];
+    int j = threadIdx.y;
+    c[i][j] = a[i][j] + b[i][j];
 }
 
 int main()
 {
-    const int xDim = 5;
-    const int yDim = 5;
-    const int a[xDim][yDim] = {
+    const int a[N][M] = {
         { 1, 1, 1, 1, 1},
         { 1, 1, 1, 1, 1},
         { 1, 1, 1, 1, 1},
-        { 1, 1, 1, 1, 1}
+        { 1, 1, 1, 1, 1},
     };
-    const int b[xDim][yDim] = {
+    const int b[N][M] = {
         { 2, 2, 2, 2, 2},
         { 2, 2, 2, 2, 2},
         { 2, 2, 2, 2, 2},
-        { 2, 2, 2, 2, 2}
-    };;
-    int c[xDim][yDim] = { 0 };
+        { 2, 2, 2, 2, 2},
+    };
+    int c[N][M] = { 0 };
 
-    cudaError_t cudaStatus = matrixAdd(c, a, b, xDim, yDim);
+    cudaError_t cudaStatus = matrixAdd(c, a, b);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "matrixAdd failed!");
         return 1;
+    }
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            printf("%d ", c[i][j]);
+        }
+        printf("\n");
     }
 
     cudaStatus = cudaDeviceReset();
@@ -45,11 +54,11 @@ int main()
     return 0;
 }
 
-cudaError_t matrixAdd(int **c, const int **a, const int **b, unsigned int xDim, unsigned int yDim)
+cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M])
 {
-    int *dev_a = 0;
-    int *dev_b = 0;
-    int *dev_c = 0;
+    int(*dev_a)[M] = 0;
+    int(*dev_b)[M] = 0;
+    int(*dev_c)[M] = 0;
     cudaError_t cudaStatus;
 
     cudaStatus = cudaSetDevice(0);
@@ -58,37 +67,38 @@ cudaError_t matrixAdd(int **c, const int **a, const int **b, unsigned int xDim, 
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_c, xDim * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_c, N * M * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_a, xDim * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_a, N * M * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_b, xDim * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_b, N * M * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_a, a, xDim * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_a, a, N * M * sizeof(int), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_b, b, xDim * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_b, b, N * M * sizeof(int), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
-    addKernel<<<1, xDim>>>(dev_c, dev_a, dev_b);
+    dim3 threadsPerBlock(N, M);
+    addKernel<<<1, threadsPerBlock>>>(dev_c, dev_a, dev_b);
 
     cudaStatus = cudaDeviceSynchronize();
     if (cudaStatus != cudaSuccess) {
@@ -96,7 +106,7 @@ cudaError_t matrixAdd(int **c, const int **a, const int **b, unsigned int xDim, 
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(c, dev_c, xDim * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaStatus = cudaMemcpy(c, dev_c, N * M * sizeof(int), cudaMemcpyDeviceToHost);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
