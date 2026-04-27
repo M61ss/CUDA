@@ -7,7 +7,7 @@
 #define M 5
 #define N 4
 
-cudaError_t matrixAdd(int ca[][M], const int a[][M], const int b[][M]);
+cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M]);
 
 __global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
 {
