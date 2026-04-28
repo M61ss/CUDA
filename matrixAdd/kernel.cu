@@ -3,11 +3,7 @@
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <vector>
-
-#define M 5
-#define N 4
 
 class Matrix {
 private:
@@ -16,7 +12,20 @@ private:
     std::vector<int> data_;
 
 public:
-    Matrix(const int n, const int m) : rows_(n), cols_(m), data_(n * m) {}
+    Matrix(const int &n, const int &m, const int &val = 0) : rows_(n), cols_(m), data_(n * m) {
+        if (val != 0) {
+            fillMatrix(val);
+        }
+    }
+
+    auto rows() { return rows_; }
+    auto cols() { return cols_; }
+    auto data() { return data_; }
+    auto rawData() { return data_.data(); }
+
+    int& operator[](const int& pos) {
+        return data_[pos];
+    }
 
     void fillMatrix(const int val) {
         for (int i = 0; i < rows_; i++) {
@@ -27,42 +36,31 @@ public:
     }
 };
 
-cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M]);
+cudaError_t matrixAdd(int *c, const int *a, const int *b, const size_t rows, const size_t cols);
 
-__global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
+__global__ void addKernel(int *c, const int *a, const int *b, const size_t cols)
 {
-    int i = threadIdx.x;
-    int j = threadIdx.y;
-    c[i][j] = a[i][j] + b[i][j];
+    size_t idx = threadIdx.x * cols + threadIdx.y;
+    c[idx] = a[idx] + b[idx];
 }
-
-
 
 int main()
 {
-    const int a[N][M] = {
-        { 1, 1, 1, 1, 1},
-        { 1, 1, 1, 1, 1},
-        { 1, 1, 1, 1, 1},
-        { 1, 1, 1, 1, 1},
-    };
-    const int b[N][M] = {
-        { 2, 2, 2, 2, 2},
-        { 2, 2, 2, 2, 2},
-        { 2, 2, 2, 2, 2},
-        { 2, 2, 2, 2, 2},
-    };
-    int c[N][M] = { 0 };
+    const size_t N = 5;
+    const size_t M = 4;
+    Matrix a(N, M, 1);
+    Matrix b(N, M, 2);
+    Matrix c(N, M);
 
-    cudaError_t cudaStatus = matrixAdd(c, a, b);
+    cudaError_t cudaStatus = matrixAdd(c.rawData(), a.rawData(), b.rawData(), N, M);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "matrixAdd failed!");
         return 1;
     }
 
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < M; j++) {
-            printf("%d ", c[i][j]);
+    for (int i = 0; i < c.rows(); i++) {
+        for (int j = 0; j < c.cols(); j++) {
+            printf("%d ", c[i * c.cols() + j]);
         }
         printf("\n");
     }
@@ -76,11 +74,11 @@ int main()
     return 0;
 }
 
-cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M])
+cudaError_t matrixAdd(int *c, const int *a, const int *b, const size_t rows, const size_t cols)
 {
-    int (*dev_a)[M] = 0;
-    int (*dev_b)[M] = 0;
-    int (*dev_c)[M] = 0;
+    int *dev_a = nullptr;
+    int *dev_b = nullptr;
+    int *dev_c = nullptr;
     cudaError_t cudaStatus;
 
     cudaStatus = cudaSetDevice(0);
@@ -89,38 +87,38 @@ cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M])
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_c, N * M * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_c, rows * cols * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_a, N * M * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_a, rows * cols * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_b, N * M * sizeof(int));
+    cudaStatus = cudaMalloc((void**)&dev_b, rows * cols * sizeof(int));
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_a, a, N * M * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_a, a, rows * cols * sizeof(int), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(dev_b, b, N * M * sizeof(int), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpy(dev_b, b, rows * cols * sizeof(int), cudaMemcpyHostToDevice);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
-    dim3 threadsPerBlock(N, M);
-    addKernel<<<1, threadsPerBlock>>>(dev_c, dev_a, dev_b);
+    dim3 threadsPerBlock(rows, cols);
+    addKernel<<<1, threadsPerBlock>>>(dev_c, dev_a, dev_b, cols);
 
     cudaStatus = cudaDeviceSynchronize();
     if (cudaStatus != cudaSuccess) {
@@ -128,7 +126,7 @@ cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M])
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(c, dev_c, N * M * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaStatus = cudaMemcpy(c, dev_c, rows * cols * sizeof(int), cudaMemcpyDeviceToHost);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
