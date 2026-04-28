@@ -4,9 +4,28 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 #define M 5
 #define N 4
+
+class Matrix {
+private:
+    const size_t rows_;
+    const size_t cols_;
+    std::vector<int> data_;
+
+public:
+    Matrix(const int n, const int m) : rows_(n), cols_(m), data_(n * m) {}
+
+    void fillMatrix(const int val) {
+        for (int i = 0; i < rows_; i++) {
+            for (int j = 0; j < cols_; j++) {
+                data_[i * cols_ + j] = val;
+            }
+        }
+    }
+};
 
 cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M]);
 
@@ -17,22 +36,7 @@ __global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
     c[i][j] = a[i][j] + b[i][j];
 }
 
-int** createMatrix(const int n, const int m) {
-    int** matrix = (int**)malloc(n * sizeof(int*));
-    for (int i = 0; i < n; i++) {
-        matrix[i] = (int*)malloc(m * sizeof(int));
-    }
 
-    return matrix;
-}
-
-void fillMatrix(int** matrix, const int n, const int m, const int val) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            matrix[i][j] = val;
-        }
-    }
-}
 
 int main()
 {
