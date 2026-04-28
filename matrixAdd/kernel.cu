@@ -3,6 +3,7 @@
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #define M 5
 #define N 4
@@ -14,6 +15,18 @@ __global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
     int i = threadIdx.x;
     int j = threadIdx.y;
     c[i][j] = a[i][j] + b[i][j];
+}
+
+int** createMatrix(const int n, const int m, const int val) {
+    int** matrix = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        matrix[i] = (int*)malloc(m * sizeof(int));
+        for (int j = 0; j < m; j++) {
+            matrix[i][j] = val;
+        }
+    }
+
+    return matrix;
 }
 
 int main()
