@@ -69,9 +69,9 @@ int main()
 
 cudaError_t matrixAdd(int c[][M], const int a[][M], const int b[][M])
 {
-    int(*dev_a)[M] = 0;
-    int(*dev_b)[M] = 0;
-    int(*dev_c)[M] = 0;
+    int (*dev_a)[M] = 0;
+    int (*dev_b)[M] = 0;
+    int (*dev_c)[M] = 0;
     cudaError_t cudaStatus;
 
     cudaStatus = cudaSetDevice(0);
