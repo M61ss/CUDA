@@ -17,12 +17,12 @@ __global__ void addKernel(int c[][M], const int a[][M], const int b[][M])
     c[i][j] = a[i][j] + b[i][j];
 }
 
-int** createMatrix(const int n, const int m, const int val) {
+int** createMatrix(const int n, const int m, const int initialValue) {
     int** matrix = (int**)malloc(n * sizeof(int*));
     for (int i = 0; i < n; i++) {
         matrix[i] = (int*)malloc(m * sizeof(int));
         for (int j = 0; j < m; j++) {
-            matrix[i][j] = val;
+            matrix[i][j] = initialValue;
         }
     }
 
