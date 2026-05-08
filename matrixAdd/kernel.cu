@@ -40,7 +40,7 @@ public:
     void fillMatrix(const int val) {
         for (int i = 0; i < rows_; i++) {
             for (int j = 0; j < cols_; j++) {
-                data_[i * cols_ + j] = val;
+                this->operator()(i, j) = val;
             }
         }
     }
