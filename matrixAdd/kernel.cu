@@ -1,5 +1,4 @@
-﻿
-#include "cuda_runtime.h"
+﻿#include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
 #include <stdio.h>
@@ -7,8 +6,8 @@
 
 class Matrix {
 private:
-    const size_t rows_;
-    const size_t cols_;
+    size_t rows_;
+    size_t cols_;
     std::vector<int> data_;
 
 public:
@@ -18,10 +17,15 @@ public:
         }
     }
 
-    auto rows() { return rows_; }
-    auto cols() { return cols_; }
-    auto data() { return data_; }
-    auto rawData() { return data_.data(); }
+    const size_t& rows() const { return rows_; }
+    const size_t& cols() const { return cols_; }
+    const std::vector<int>& data() const { return data_; }
+    const int* rawData() const { return data_.data(); }
+
+    size_t& rows() { return rows_; }
+    size_t& cols() { return cols_; }
+    std::vector<int>& data() { return data_; }
+    int* rawData() { return data_.data(); }
 
     int& operator[](const int& pos) {
         return data_[pos];
