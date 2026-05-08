@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <cassert>
 
 class Matrix {
 private:
@@ -27,8 +28,13 @@ public:
     std::vector<int>& data() { return data_; }
     int* rawData() { return data_.data(); }
 
-    int& operator[](const int& pos) {
-        return data_[pos];
+    const int& operator()(const size_t& i, const size_t& j) const {
+        assert(i >= 0 && i < rows_ && j >= 0 && j < cols_);
+        return data_[i * cols_ + j];
+    }
+    int& operator()(const size_t& i, const size_t& j) {
+        return const_cast<int&>(
+            static_cast<const Matrix*>(this)->operator()(i, j));
     }
 
     void fillMatrix(const int val) {
@@ -64,7 +70,7 @@ int main()
 
     for (int i = 0; i < c.rows(); i++) {
         for (int j = 0; j < c.cols(); j++) {
-            printf("%d ", c[i * c.cols() + j]);
+            printf("%d ", c(i, j));
         }
         printf("\n");
     }
